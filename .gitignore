@@ -1,0 +1,85 @@
+# Tenesta .gitignore
+
+# API Keys and Secrets
+API-keys/
+Passwords-keys/
+*.env
+*.env.local
+*.env.production
+.env.example
+
+# Supabase
+.supabase/
+supabase/.env
+supabase/.env.local
+
+# Node modules
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+build/
+dist/
+.next/
+out/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+logs/
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+.nyc_output/
+
+# Temporary files
+tmp/
+temp/
+.tmp/
+
+# Cache
+.cache/
+.npm/
+.yarn/
+
+# Database
+*.sqlite
+*.db
+
+# Screenshots and temporary files
+Screenshot*.png
+*.tmp
+
+# Local development
+.local/
+.env.development
+
+# Package manager lockfiles (keep one)
+package-lock.json
+yarn.lock
+
+# MCP config with sensitive tokens
+mcp-config.json
+
+# Test credentials
+*test_config*
+*test_credentials*

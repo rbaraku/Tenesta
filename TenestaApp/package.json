@@ -1,0 +1,29 @@
+{
+  "name": "tenesta-app",
+  "version": "1.0.0",
+  "description": "AI-Enhanced Property Management Platform",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test_database_connection.js",
+    "test:db": "node test_database_connection.js",
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js"
+  },
+  "keywords": [
+    "property-management",
+    "supabase",
+    "react-native",
+    "ai"
+  ],
+  "author": "Tenesta Team",
+  "license": "MIT",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
