@@ -9,10 +9,10 @@
 ## 🏗️ Backend API Development
 
 ### Supabase Edge Functions - Critical Fixes
-- [ ] **Fix household-management function** - Complete `updateSplitPayment` implementation (line 823)
-- [ ] **Fix document-management function** - Correct user ID field from `auth_user_id` to `id` (line 64)
-- [ ] **Fix landlord-dashboard function** - Fix disputes query filter to use tenancy IDs (line 171)
-- [ ] **Fix payment-process function** - Implement `schedulePayment` functionality (lines 383-388)
+- [x] **Fix household-management function** - Complete `updateSplitPayment` implementation (line 823)
+- [x] **Fix document-management function** - Correct user ID field from `auth_user_id` to `id` (line 64)
+- [x] **Fix landlord-dashboard function** - Fix disputes query filter to use tenancy IDs (line 171)
+- [x] **Fix payment-process function** - Implement `schedulePayment` functionality (lines 383-388)
 
 ### Supabase Edge Functions - Missing Features
 - [ ] **Document Management Enhancements**

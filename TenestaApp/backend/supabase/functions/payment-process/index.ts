@@ -162,7 +162,7 @@ serve(async (req) => {
             }
           )
         }
-        response = await schedulePayment(payment)
+        response = await schedulePayment(supabaseClient, payment)
         break
       
       default:
@@ -378,12 +378,132 @@ async function markPaymentPaid(supabaseClient: any, payment: any): Promise<Payme
   }
 }
 
-async function schedulePayment(payment: any): Promise<PaymentResponse> {
-  // This would integrate with Stripe's scheduled payments or ACH
-  // For now, return a placeholder response
-  return {
-    success: true,
-    payment_status: 'scheduled',
-    payment_data: payment
+async function schedulePayment(supabaseClient: any, payment: any): Promise<PaymentResponse> {
+  try {
+    // For scheduled payments, we'll create future payment records
+    // This implements recurring rent payments functionality
+    
+    if (!payment || !payment.tenancy) {
+      return {
+        success: false,
+        error: 'Invalid payment data or missing tenancy information'
+      }
+    }
+
+    const tenancy = payment.tenancy
+    const currentDate = new Date()
+    const monthsToSchedule = 12 // Schedule for next 12 months
+    
+    // Calculate due date pattern (typically monthly on the same day)
+    const currentDueDate = new Date(payment.due_date)
+    const dayOfMonth = currentDueDate.getDate()
+    
+    const scheduledPayments = []
+    
+    // Create future payment records
+    for (let i = 1; i <= monthsToSchedule; i++) {
+      const nextDueDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + i, dayOfMonth)
+      
+      // Skip if payment already exists for this month
+      const existingPayment = await supabaseClient
+        .from('payments')
+        .select('id')
+        .eq('tenancy_id', payment.tenancy_id)
+        .gte('due_date', new Date(nextDueDate.getFullYear(), nextDueDate.getMonth(), 1).toISOString().split('T')[0])
+        .lt('due_date', new Date(nextDueDate.getFullYear(), nextDueDate.getMonth() + 1, 1).toISOString().split('T')[0])
+        .single()
+        
+      if (existingPayment.data) {
+        continue // Skip if payment already exists for this month
+      }
+      
+      const scheduledPayment = {
+        tenancy_id: payment.tenancy_id,
+        amount: payment.amount,
+        due_date: nextDueDate.toISOString().split('T')[0],
+        status: 'pending',
+        payment_method: 'scheduled_auto',
+        notes: `Automatically scheduled payment for ${nextDueDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`
+      }
+      
+      scheduledPayments.push(scheduledPayment)
+    }
+    
+    if (scheduledPayments.length === 0) {
+      return {
+        success: true,
+        payment_status: 'already_scheduled',
+        payment_data: {
+          message: 'All future payments are already scheduled',
+          existing_payments: monthsToSchedule
+        }
+      }
+    }
+    
+    // Insert scheduled payments in batch
+    const { data: insertedPayments, error: insertError } = await supabaseClient
+      .from('payments')
+      .insert(scheduledPayments)
+      .select()
+    
+    if (insertError) {
+      console.error('Error creating scheduled payments:', insertError)
+      return {
+        success: false,
+        error: 'Failed to schedule future payments'
+      }
+    }
+    
+    // Create notification for tenant about scheduled payments
+    await supabaseClient
+      .from('notifications')
+      .insert({
+        user_id: tenancy.tenant_id,
+        title: 'Payments Scheduled',
+        content: `${scheduledPayments.length} future rent payments have been automatically scheduled`,
+        type: 'payment_scheduled',
+        priority: 'medium',
+        metadata: {
+          scheduled_count: scheduledPayments.length,
+          next_due_date: scheduledPayments[0]?.due_date,
+          amount: payment.amount
+        }
+      })
+    
+    // Set up Stripe subscription for automatic payments (if payment method is available)
+    let stripeSubscription = null
+    if (payment.stripe_payment_intent_id) {
+      try {
+        // This would integrate with Stripe's subscription system
+        // For now, we'll just mark the intent for future implementation
+        stripeSubscription = {
+          note: 'Stripe subscription setup would be implemented here',
+          recurring_amount: payment.amount,
+          interval: 'month',
+          next_payment_date: scheduledPayments[0]?.due_date
+        }
+      } catch (stripeError) {
+        console.warn('Stripe subscription setup skipped:', stripeError)
+      }
+    }
+    
+    return {
+      success: true,
+      payment_status: 'scheduled',
+      payment_data: {
+        scheduled_payments: insertedPayments,
+        total_scheduled: scheduledPayments.length,
+        next_due_date: scheduledPayments[0]?.due_date,
+        stripe_subscription: stripeSubscription,
+        message: `Successfully scheduled ${scheduledPayments.length} future payments`
+      }
+    }
+    
+  } catch (error) {
+    console.error('Error in schedulePayment:', error)
+    return {
+      success: false,
+      error: 'Failed to schedule payment due to system error'
+    }
   }
 }

@@ -818,9 +818,138 @@ async function updateSplitPayment(
   userProfile: any,
   requestData: HouseholdRequest
 ): Promise<HouseholdResponse> {
-  // Implementation for updating split payment status
-  // This would handle marking individual splits as paid
-  return { success: false, error: 'Not implemented yet' }
+  const { payment_id, split_amounts } = requestData
+
+  if (!payment_id || !split_amounts || !Array.isArray(split_amounts)) {
+    return { 
+      success: false, 
+      error: 'Missing required fields: payment_id and split_amounts array' 
+    }
+  }
+
+  try {
+    // First, verify that the user has access to this payment
+    const { data: splitPayment, error: fetchError } = await supabaseClient
+      .from('split_payments')
+      .select(`
+        *,
+        payment:payments (
+          tenancy_id,
+          tenancy:tenancies (
+            tenant_id,
+            property:properties (landlord_id)
+          )
+        )
+      `)
+      .eq('payment_id', payment_id)
+      .single()
+
+    if (fetchError || !splitPayment) {
+      return { success: false, error: 'Split payment not found' }
+    }
+
+    // Check if user has access (is household member, landlord, or admin)
+    const tenancy = splitPayment.payment.tenancy
+    const hasAccess = userProfile.role === 'admin' ||
+                     tenancy.tenant_id === userId ||
+                     tenancy.property.landlord_id === userId ||
+                     // Check if user is a household member
+                     await isHouseholdMember(supabaseClient, userId, tenancy.id)
+
+    if (!hasAccess) {
+      return { 
+        success: false, 
+        error: 'Access denied. You are not authorized to update this split payment.' 
+      }
+    }
+
+    // Validate split amounts structure
+    const validSplits = split_amounts.every(split => 
+      split.member_id && 
+      typeof split.amount === 'number' && 
+      split.amount > 0 &&
+      ['pending', 'paid', 'overdue'].includes(split.status || 'pending')
+    )
+
+    if (!validSplits) {
+      return { 
+        success: false, 
+        error: 'Invalid split amounts. Each split must have member_id, amount, and valid status.' 
+      }
+    }
+
+    // Update the split payment record
+    const { data: updatedSplit, error: updateError } = await supabaseClient
+      .from('split_payments')
+      .update({
+        split_amounts: split_amounts,
+        updated_at: new Date().toISOString()
+      })
+      .eq('payment_id', payment_id)
+      .select(`
+        *,
+        payment:payments (
+          *,
+          tenancy:tenancies (
+            *,
+            tenant:users!tenancies_tenant_id_fkey (id, profile),
+            property:properties (*)
+          )
+        )
+      `)
+      .single()
+
+    if (updateError) {
+      console.error('Error updating split payment:', updateError)
+      return { success: false, error: 'Failed to update split payment' }
+    }
+
+    // Check if all splits are now paid to update overall payment status
+    const allPaid = split_amounts.every(split => split.status === 'paid')
+    
+    if (allPaid) {
+      // Update the main payment record if all splits are paid
+      await supabaseClient
+        .from('payments')
+        .update({ 
+          status: 'paid',
+          paid_date: new Date().toISOString()
+        })
+        .eq('id', payment_id)
+    }
+
+    // Send notifications to affected household members
+    const notificationPromises = split_amounts.map(async (split) => {
+      if (split.member_id !== userId) { // Don't notify the person making the update
+        return supabaseClient
+          .from('notifications')
+          .insert({
+            user_id: split.member_id,
+            title: 'Split Payment Updated',
+            content: `Your split payment of $${split.amount} has been marked as ${split.status}`,
+            type: 'payment_update',
+            priority: 'medium',
+            metadata: {
+              payment_id,
+              split_amount: split.amount,
+              status: split.status
+            }
+          })
+      }
+    })
+
+    await Promise.allSettled(notificationPromises.filter(Boolean))
+
+    return {
+      success: true,
+      splitPayment: updatedSplit,
+      message: 'Split payment updated successfully'
+    }
+
+  } catch (error) {
+    console.error('Error updating split payment:', error)
+    return { success: false, error: 'Failed to update split payment' }
+  }
 }
 
 async function listSplitPayments(
@@ -902,6 +1031,22 @@ async function verifyHouseholdAccess(supabaseClient: any, userId: string, tenanc
 
   } catch (error) {
     console.error('Error verifying household access:', error)
+    return false
+  }
+}
+
+// Helper function to check if user is a household member
+async function isHouseholdMember(supabaseClient: any, userId: string, tenancyId: string): Promise<boolean> {
+  try {
+    const { data: householdMember } = await supabaseClient
+      .from('household_members')
+      .select('id')
+      .eq('tenancy_id', tenancyId)
+      .eq('user_id', userId)
+      .single()
+
+    return !!householdMember
+  } catch (error) {
     return false
   }
 }

@@ -32,6 +32,7 @@ CREATE TABLE organizations (
 -- Users (Tenants, Landlords, Staff)
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    auth_user_id UUID UNIQUE, -- Links to auth.users.id in Supabase Auth
     email TEXT UNIQUE NOT NULL,
     role TEXT CHECK (role IN ('tenant', 'landlord', 'admin', 'staff', 'maintenance')) NOT NULL,
     organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
@@ -177,6 +178,7 @@ CREATE TABLE notes (
 
 -- Users indexes
 CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_users_auth_user_id ON users(auth_user_id);
 CREATE INDEX idx_users_role ON users(role);
 CREATE INDEX idx_users_organization ON users(organization_id);
 

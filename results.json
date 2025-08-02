@@ -1,0 +1,67 @@
+[
+    {
+      "function_name": "generate_next_payment",
+      "parameters": "tenancy_uuid uuid",
+      "full_definition": "CREATE OR REPLACE FUNCTION public.generate_next_payment(tenancy_uuid uuid)\n RETURNS TABLE(due_date date, period_start date, period_end date, amount numeric)\n LANGUAGE plpgsql\nAS $function$\nDECLARE\n    last_payment_end DATE;\n    tenancy_record RECORD;\nBEGIN\n    -- Get tenancy details\n    SELECT * INTO tenancy_record FROM tenancies WHERE id = tenancy_uuid;\n    \n    -- Get last payment period end\n    SELECT payment_period_end INTO last_payment_end\n    FROM payments \n    WHERE tenancy_id = tenancy_uuid \n    ORDER BY payment_period_end DESC \n    LIMIT 1;\n    \n    -- If no previous payments, start from lease start\n    IF last_payment_end IS NULL THEN\n        last_payment_end := tenancy_record.lease_start - INTERVAL '1 day';\n    END IF;\n    \n    -- Calculate next period\n    period_start := last_payment_end + INTERVAL '1 day';\n    period_end := period_start + INTERVAL '1 month' - INTERVAL '1 day';\n    due_date := period_start;\n    amount := tenancy_record.rent_amount;\n    \n    RETURN NEXT;\nEND;\n$function$\n"
+    },
+    {
+      "function_name": "generate_ticket_number",
+      "parameters": "",
+      "full_definition": "CREATE OR REPLACE FUNCTION public.generate_ticket_number()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n    NEW.ticket_number := 'TKT-' || to_char(now(), 'YYYYMM') || '-' || lpad(nextval('ticket_number_seq')::text, 6, '0');\n    RETURN NEW;\nEND;\n$function$\n"
+    },
+    {
+      "function_name": "get_user_organization",
+      "parameters": "user_id uuid",
+      "full_definition": "CREATE OR REPLACE FUNCTION public.get_user_organization(user_id uuid)\n RETURNS uuid\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\n  SELECT organization_id\n  FROM users \n  WHERE id = user_id;\n$function$\n"
+    },
+    {
+      "function_name": "get_user_role",
+      "parameters": "user_uuid uuid",
+      "full_definition": "CREATE OR REPLACE FUNCTION public.get_user_role(user_uuid uuid)\n RETURNS text\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\nBEGIN\n    RETURN (\n        SELECT role FROM users \n        WHERE id = user_uuid OR auth_user_id = user_uuid\n        LIMIT 1\n    );\nEND;\n$function$\n"
+    },
+    {
+      "function_name": "is_admin",
+      "parameters": "user_id uuid",
+      "full_definition": "CREATE OR REPLACE FUNCTION public.is_admin(user_id uuid)\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\n  SELECT EXISTS (\n    SELECT 1 FROM users \n    WHERE id = user_id \n    AND role = 'admin'\n  );\n$function$\n"
+    },
+    {
+      "function_name": "is_associated_with_tenancy",
+      "parameters": "tenancy_id uuid",
+      "full_definition": "CREATE OR REPLACE FUNCTION public.is_associated_with_tenancy(tenancy_id uuid)\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\n  SELECT EXISTS (\n    SELECT 1 FROM tenancies t\n    LEFT JOIN properties p ON t.property_id = p.id\n    LEFT JOIN users u ON u.id = auth.uid()\n    WHERE t.id = tenancy_id\n    AND (\n      t.tenant_id = auth.uid() \n      OR p.landlord_id = auth.uid()\n      OR (p.organization_id = u.organization_id AND u.role IN ('landlord', 'admin', 'staff'))\n    )\n  )\n$function$\n"
+    },
+    {
+      "function_name": "is_member_of_organization",
+      "parameters": "org_id uuid",
+      "full_definition": "CREATE OR REPLACE FUNCTION public.is_member_of_organization(org_id uuid)\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\n  SELECT EXISTS (\n    SELECT 1 FROM users \n    WHERE id = auth.uid() \n    AND organization_id = org_id\n  )\n$function$\n"
+    },
+    {
+      "function_name": "is_property_landlord",
+      "parameters": "user_uuid uuid, property_uuid uuid",
+      "full_definition": "CREATE OR REPLACE FUNCTION public.is_property_landlord(user_uuid uuid, property_uuid uuid)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\nBEGIN\n    RETURN EXISTS (\n        SELECT 1 FROM properties p\n        JOIN users u ON p.landlord_id = u.id\n        WHERE p.id = property_uuid \n        AND (u.id = user_uuid OR u.auth_user_id = user_uuid)\n    );\nEND;\n$function$\n"
+    },
+    {
+      "function_name": "is_property_tenant",
+      "parameters": "user_uuid uuid, property_uuid uuid",
+      "full_definition": "CREATE OR REPLACE FUNCTION public.is_property_tenant(user_uuid uuid, property_uuid uuid)\n RETURNS boolean\n LANGUAGE plpgsql\n SECURITY DEFINER\nAS $function$\nBEGIN\n    RETURN EXISTS (\n        SELECT 1 FROM tenancies t\n        JOIN users u ON t.tenant_id = u.id\n        WHERE t.property_id = property_uuid \n        AND t.status = 'active'\n        AND (u.id = user_uuid OR u.auth_user_id = user_uuid)\n    );\nEND;\n$function$\n"
+    },
+    {
+      "function_name": "is_strong_password",
+      "parameters": "password text",
+      "full_definition": "CREATE OR REPLACE FUNCTION public.is_strong_password(password text)\n RETURNS jsonb\n LANGUAGE plpgsql\n IMMUTABLE\nAS $function$\nDECLARE\n  result JSONB;\n  score INTEGER := 0;\n  feedback TEXT[] := ARRAY[]::TEXT[];\nBEGIN\n  -- Check length\n  IF length(password) >= 8 THEN\n    score := score + 1;\n  ELSE\n    feedback := array_append(feedback, 'Password must be at least 8 characters long');\n  END IF;\n  \n  -- Check for uppercase\n  IF password ~ '[A-Z]' THEN\n    score := score + 1;\n  ELSE\n    feedback := array_append(feedback, 'Include at least one uppercase letter');\n  END IF;\n  \n  -- Check for lowercase\n  IF password ~ '[a-z]' THEN\n    score := score + 1;\n  ELSE\n    feedback := array_append(feedback, 'Include at least one lowercase letter');\n  END IF;\n  \n  -- Check for numbers\n  IF password ~ '[0-9]' THEN\n    score := score + 1;\n  ELSE\n    feedback := array_append(feedback, 'Include at least one number');\n  END IF;\n  \n  -- Check for special characters\n  IF password ~ '[!@#$%^&*(),.?\":{}|<>]' THEN\n    score := score + 1;\n  ELSE\n    feedback := array_append(feedback, 'Include at least one special character');\n  END IF;\n  \n  result := jsonb_build_object(\n    'score', score,\n    'max_score', 5,\n    'is_valid', score >= 4,\n    'strength', CASE \n      WHEN score <= 2 THEN 'weak'\n      WHEN score = 3 THEN 'fair'\n      WHEN score = 4 THEN 'good'\n      ELSE 'strong'\n    END,\n    'feedback', to_jsonb(feedback)\n  );\n  \n  RETURN result;\nEND;\n$function$\n"
+    },
+    {
+      "function_name": "is_valid_email",
+      "parameters": "email text",
+      "full_definition": "CREATE OR REPLACE FUNCTION public.is_valid_email(email text)\n RETURNS boolean\n LANGUAGE plpgsql\n IMMUTABLE\nAS $function$\nBEGIN\n  RETURN email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$';\nEND;\n$function$\n"
+    },
+    {
+      "function_name": "notify_dispute_status_change",
+      "parameters": "",
+      "full_definition": "CREATE OR REPLACE FUNCTION public.notify_dispute_status_change()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n    PERFORM pg_notify(\n        'dispute_status_changed',\n        json_build_object(\n            'dispute_id', NEW.id,\n            'tenancy_id', NEW.tenancy_id,\n            'old_status', OLD.status,\n            'new_status', NEW.status,\n            'title', NEW.title,\n            'priority', NEW.priority\n        )::text\n    );\n    RETURN NEW;\nEND;\n$function$\n"
+    },
+    {
+      "function_name": "notify_payment_status_change",
+      "parameters": "",
+      "full_definition": "CREATE OR REPLACE FUNCTION public.notify_payment_status_change()\n RETURNS trigger\n LANGUAGE plpgsql\nAS $function$\nBEGIN\n    -- Send real-time notification when payment status changes\n    PERFORM pg_notify(\n        'payment_status_changed',\n        json_build_object(\n            'payment_id', NEW.id,\n            'tenancy_id', NEW.tenancy_id,\n            'old_status', OLD.status,\n            'new_status', NEW.status,\n            'amount', NEW.amount,\n            'due_date', NEW.due_date\n        )::text\n    );\n    \n    -- Auto-create notification record for relevant users\n    IF NEW.status = 'paid' AND OLD.status != 'paid' THEN\n        INSERT INTO notifications (user_id, title, content, type, priority)\n        SELECT \n            u.id,\n            'Payment Received',\n            'Rent payment of $' || NEW.amount || ' has been received.',\n            'payment_received',\n            'medium'\n        FROM tenancies t\n        JOIN properties p ON t.property_id = p.id\n        JOIN users u ON p.landlord_id = u.id\n        WHERE t.id = NEW.tenancy_id;\n    END IF;\n    \n    RETURN NEW;\nEND;\n$function$\n"
+    }
+  ]

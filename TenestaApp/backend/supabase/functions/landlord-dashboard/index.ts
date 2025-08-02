@@ -150,10 +150,12 @@ serve(async (req) => {
       : 0
 
     // Get active disputes for landlord's properties
-    const propertyIds = properties?.map(p => p.id) || []
+    const tenancyIds = properties?.flatMap(p => 
+      p.tenancies?.map(t => t.id) || []
+    ) || []
     let activeDisputes: any[] = []
     
-    if (propertyIds.length > 0) {
+    if (tenancyIds.length > 0) {
       const { data: disputes, error: disputesError } = await supabaseClient
         .from('disputes')
         .select(`
@@ -168,7 +170,7 @@ serve(async (req) => {
             )
           )
         `)
-        .in('tenancy_id', propertyIds)
+        .in('tenancy_id', tenancyIds)
         .in('status', ['open', 'in_progress'])
         .order('created_at', { ascending: false })
 
