@@ -1,0 +1,63 @@
+# Tenesta API Usage Policy
+
+Effective Date: August 2, 2025  
+Applies To: Developers, partners, and any third-party service accessing the Tenesta API.
+
+---
+
+## 📘 Overview
+
+Tenesta provides APIs to help developers, landlords, and proptech partners integrate with our platform. These APIs are intended to support authorized use only — such as syncing rent data, accessing payment dashboards, and automating tenant notifications.
+
+---
+
+## 🧾 Terms of Use
+
+By using the Tenesta API, you agree to:
+
+- **Authenticate** via approved tokens or keys only
+- **Use only approved endpoints** documented at [docs.tenesta.com]  
+- **Respect rate limits** (default: 60 requests/minute)
+- **Avoid scraping** or reverse-engineering any part of the platform
+- **Not share your access token** with unapproved third parties
+
+---
+
+## 🔒 Data Privacy & Security
+
+- All API responses are encrypted (TLS 1.2+)  
+- PII (personally identifiable info) may only be stored with explicit tenant consent  
+- No long-term caching of sensitive info is allowed unless part of a secure tenant-facing service
+
+---
+
+## Abuse and Violations
+
+Violations of this policy may result in:
+
+| Violation | Result |
+|----------|--------|
+| Exceeding rate limits | Throttling or temporary block |
+| Unauthorized data scraping | API key revocation |
+| Misuse of tenant or landlord data | Legal action + permanent ban |
+
+---
+
+## Support & Access
+
+To request API access:  
+**integrations@tenesta.com**  
+Requests are reviewed within **5–7 business days**.
+
+To report abuse or suspicious integrations:  
+**security@tenesta.com**
+
+---
+
+## Updates
+
+Tenesta reserves the right to update this policy at any time. API consumers will be notified of major changes at least 14 days in advance.
+
+---
+
+Tenesta’s API is a tool — not a weapon. Use it responsibly.
