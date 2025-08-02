@@ -41,7 +41,7 @@ Violations of this policy are reviewed by the Tenesta Trust & Safety Team. Enfor
 ## Reporting Violations
 
 To report abuse or violations of this policy, contact:  
-**trust@tenesta.com**  
+tenesta.pro
 Reports are reviewed within 24–48 business hours.
 
 ---
