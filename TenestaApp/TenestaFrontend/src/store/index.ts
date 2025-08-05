@@ -3,6 +3,7 @@ import authSlice from './slices/authSlice';
 import userSlice from './slices/userSlice';
 import propertySlice from './slices/propertySlice';
 import paymentSlice from './slices/paymentSlice';
+import landlordSlice from './slices/landlordSlice';
 
 export const store = configureStore({
   reducer: {
@@ -10,6 +11,7 @@ export const store = configureStore({
     user: userSlice,
     property: propertySlice,
     payment: paymentSlice,
+    landlord: landlordSlice,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

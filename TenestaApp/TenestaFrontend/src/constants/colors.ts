@@ -14,6 +14,8 @@ export const Colors = {
   surface: '#F8F9FA',
   surfaceDark: '#F1F3F4',
   border: '#E0E0E0',
+  white: '#FFFFFF',
+  inputBackground: '#F5F5F5',
   
   // Text colors
   text: '#212121',

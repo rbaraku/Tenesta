@@ -1,4 +1,6 @@
 export * from './colors';
+export * from './typography';
+export * from './spacing';
 
 // Safe environment variable access with fallbacks
 export const API_CONFIG = {

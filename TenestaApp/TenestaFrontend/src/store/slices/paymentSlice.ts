@@ -18,7 +18,7 @@ const initialState: PaymentState = {
 
 export const fetchPayments = createAsyncThunk(
   'payment/fetchPayments',
-  async (_, { rejectWithValue }) => {
+  async (filters: any = {}, { rejectWithValue }) => {
     try {
       const response = await apiService.getPayments();
       if (response.error) {
