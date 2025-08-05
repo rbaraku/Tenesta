@@ -8,10 +8,8 @@ import { Colors } from '../constants';
 import LandlordDashboard from '../screens/landlord/LandlordDashboard';
 import PaymentsScreen from '../screens/landlord/PaymentsScreen';
 import PropertiesScreen from '../screens/landlord/PropertiesScreen';
-
-// Placeholder screens for now
-const TenantsScreen = () => <Text>Tenants Screen</Text>;
-const ReportsScreen = () => <Text>Reports Screen</Text>;
+import TenantsScreen from '../screens/landlord/TenantsScreen';
+import ReportsScreen from '../screens/landlord/ReportsScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
