@@ -27,7 +27,7 @@ export const signIn = createAsyncThunk(
       if (error) {
         return rejectWithValue(error.message);
       }
-      return { user: data.user, session: data.session };
+      return { user: data?.user || null, session: data?.session || null };
     } catch (error) {
       return rejectWithValue('An unexpected error occurred');
     }
@@ -50,7 +50,7 @@ export const signUp = createAsyncThunk(
       if (error) {
         return rejectWithValue(error.message);
       }
-      return { user: data.user, session: data.session };
+      return { user: data?.user || null, session: data?.session || null };
     } catch (error) {
       return rejectWithValue('An unexpected error occurred');
     }
@@ -127,7 +127,7 @@ const authSlice = createSlice({
       })
       .addCase(signIn.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.user = action.payload.user;
+        state.user = action.payload.user as any;
         state.session = action.payload.session;
         state.isAuthenticated = true;
         state.error = null;
@@ -146,7 +146,7 @@ const authSlice = createSlice({
       })
       .addCase(signUp.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.user = action.payload.user;
+        state.user = action.payload.user as any;
         state.session = action.payload.session;
         state.isAuthenticated = true;
         state.error = null;
@@ -193,7 +193,7 @@ const authSlice = createSlice({
     // Get Current User
     builder
       .addCase(getCurrentUser.fulfilled, (state, action) => {
-        state.user = action.payload;
+        state.user = action.payload as any;
         state.isAuthenticated = !!action.payload;
       });
   },

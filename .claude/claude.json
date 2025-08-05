@@ -1,0 +1,38 @@
+{
+  "name": "Tenesta AI Development Team",
+  "description": "Specialized AI agent team for Tenesta property management platform development",
+  "version": "1.0.0",
+  "commands": [
+    "product-director",
+    "tech-director",
+    "ux-researcher",
+    "ui-designer",
+    "interaction-designer",
+    "react-native-lead",
+    "ios-specialist",
+    "android-specialist",
+    "component-developer",
+    "api-architect",
+    "database-engineer",
+    "security-engineer",
+    "ai-engineer",
+    "conversational-ai",
+    "devops-engineer",
+    "performance-engineer",
+    "integration-specialist",
+    "test-automation",
+    "qa-specialist",
+    "analytics-engineer",
+    "growth-hacker",
+    "squad-sync",
+    "fix-backend-critical",
+    "setup-frontend",
+    "implement-ai-features"
+  ],
+  "context": {
+    "project": "Tenesta Property Management Platform",
+    "stack": ["React Native", "TypeScript", "Supabase", "PostgreSQL", "Stripe"],
+    "phase": "Backend 90% complete, Frontend not started",
+    "priority": "Critical backend fixes, then frontend development"
+  }
+}

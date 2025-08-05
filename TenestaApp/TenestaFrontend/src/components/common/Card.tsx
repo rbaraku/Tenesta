@@ -25,9 +25,9 @@ const Card: React.FC<CardProps> = ({
   const cardStyle = [
     styles.card,
     { padding },
-    elevation && { elevation },
+    elevation > 0 && { elevation },
     style,
-  ];
+  ].filter(Boolean);
 
   if (onPress) {
     return (

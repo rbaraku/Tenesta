@@ -1,7 +1,7 @@
 import { supabase } from './supabase';
 import { ApiResponse, DashboardData, User, Property, Payment } from '../types';
 
-const BASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL + '/functions/v1';
+const BASE_URL = (process.env['EXPO_PUBLIC_SUPABASE_URL'] || 'https://skjaxjaawqvjjhyxnxls.supabase.co') + '/functions/v1';
 
 class ApiService {
   private async makeRequest<T>(

@@ -24,22 +24,36 @@ const AppNavigator: React.FC = () => {
 
   useEffect(() => {
     // Check for existing session
-    dispatch(getCurrentUser());
+    dispatch(getCurrentUser()).catch(error => {
+      console.warn('Failed to get current user:', error);
+    });
 
     // Listen for auth state changes
-    const { data: { subscription } } = authService.onAuthStateChange(
-      (event, session) => {
-        if (event === 'SIGNED_IN' && session) {
-          dispatch(setSession(session));
-          dispatch(setUser(session.user));
-        } else if (event === 'SIGNED_OUT') {
-          dispatch(setSession(null));
-          dispatch(setUser(null));
+    try {
+      const { data: { subscription } } = authService.onAuthStateChange(
+        (event, session) => {
+          console.log('Auth state change:', event, session?.user?.id);
+          if (event === 'SIGNED_IN' && session) {
+            dispatch(setSession(session));
+            dispatch(setUser(session.user));
+          } else if (event === 'SIGNED_OUT') {
+            dispatch(setSession(null));
+            dispatch(setUser(null));
+          }
         }
-      }
-    );
+      );
 
-    return () => subscription.unsubscribe();
+      return () => {
+        try {
+          subscription.unsubscribe();
+        } catch (error) {
+          console.warn('Failed to unsubscribe from auth changes:', error);
+        }
+      };
+    } catch (error) {
+      console.error('Failed to set up auth state listener:', error);
+      return () => {}; // Return empty cleanup function
+    }
   }, [dispatch]);
 
   const getMainNavigator = () => {
@@ -58,18 +72,18 @@ const AppNavigator: React.FC = () => {
     }
 
     // Return appropriate navigator based on user role
-    if (user.role === 'tenant') {
+    // For now, default to tenant navigator since we don't have role info from Supabase user object
+    // TODO: Implement user profile fetching to get role information
+    const userRole = (user as any)?.role || 'tenant';
+    
+    if (userRole === 'tenant') {
       return <TenantNavigator />;
-    } else if (user.role === 'landlord') {
+    } else if (userRole === 'landlord') {
       return <LandlordNavigator />;
     }
 
-    // Default fallback (should not happen)
-    return (
-      <Stack.Navigator>
-        <Stack.Screen name="SignIn" component={SignInScreen} />
-      </Stack.Navigator>
-    );
+    // Default fallback to tenant navigator
+    return <TenantNavigator />;
   };
 
   return (

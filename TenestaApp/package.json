@@ -18,7 +18,7 @@
   "author": "Tenesta Team",
   "license": "MIT",
   "dependencies": {
-    "@supabase/supabase-js": "^2.39.1"
+    "@supabase/supabase-js": "^2.53.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"

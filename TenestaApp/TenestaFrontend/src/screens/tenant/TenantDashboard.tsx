@@ -1,25 +1,41 @@
-import React, { useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  SafeAreaView,
-  ScrollView,
-  RefreshControl,
-  Alert,
-} from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { Alert } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState, AppDispatch } from '../../store';
 import { fetchTenantDashboard } from '../../store/slices/userSlice';
 import { fetchPayments } from '../../store/slices/paymentSlice';
-import Card from '../../components/common/Card';
-import Button from '../../components/common/Button';
-import { Colors } from '../../constants';
+import { apiService } from '../../services/api';
+import { ErrorBoundary } from '../../components/common';
+import {
+  DashboardLayout,
+  DashboardSection,
+  DashboardGrid,
+  PaymentStatusCard,
+  PropertyInfoCard,
+  MaintenanceRequestCard,
+  MessagesCard,
+  NotificationsCard,
+  QuickActionButtons,
+  PaymentHistoryCard,
+  getResponsiveColumns,
+} from '../../components/tenant';
+import { 
+  TenantDashboardData, 
+  MaintenanceRequest, 
+  Notification,
+  Message,
+  Payment,
+} from '../../types';
 
 const TenantDashboard: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { dashboardData, isLoading } = useSelector((state: RootState) => state.user);
   const { payments } = useSelector((state: RootState) => state.payment);
+
+  // Local state for enhanced dashboard data
+  const [enhancedData, setEnhancedData] = useState<TenantDashboardData | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadDashboardData();
@@ -27,24 +43,45 @@ const TenantDashboard: React.FC = () => {
 
   const loadDashboardData = async () => {
     try {
+      setError(null);
+      
+      // Load basic dashboard data from Redux
       await Promise.all([
         dispatch(fetchTenantDashboard()),
         dispatch(fetchPayments()),
       ]);
+
+      // Load enhanced tenant-specific data from the tenant-dashboard API
+      const response = await apiService.getTenantDashboard();
+      if (response.error) {
+        throw new Error(response.error);
+      }
+      
+      if (response.data) {
+        setEnhancedData(response.data as TenantDashboardData);
+      }
     } catch (error) {
-      Alert.alert('Error', 'Failed to load dashboard data');
+      console.error('Error loading dashboard data:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to load dashboard data';
+      setError(errorMessage);
+      
+      // Only show alert if not refreshing (to avoid spam during pull-to-refresh)
+      if (!refreshing) {
+        Alert.alert('Error', errorMessage);
+      }
     }
   };
 
-  const onRefresh = () => {
-    loadDashboardData();
-  };
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await loadDashboardData();
+    } finally {
+      setRefreshing(false);
+    }
+  }, []);
 
-  // Calculate rent status
-  const currentRent = payments?.find(p => p.type === 'rent' && p.status === 'pending');
-  const nextPaymentDue = currentRent?.due_date ? new Date(currentRent.due_date) : null;
-  const isRentOverdue = nextPaymentDue && nextPaymentDue < new Date();
-
+  // Handler functions
   const handlePayRent = () => {
     // TODO: Navigate to payment screen
     Alert.alert('Pay Rent', 'Payment feature coming soon');
@@ -55,287 +92,193 @@ const TenantDashboard: React.FC = () => {
     Alert.alert('Documents', 'Document viewer coming soon');
   };
 
-  const handleMaintenanceRequest = () => {
-    // TODO: Navigate to maintenance screen
-    Alert.alert('Maintenance', 'Maintenance request feature coming soon');
+  const handleMaintenanceRequest = async (request: {
+    title: string;
+    description: string;
+    category: string;
+    priority: string;
+  }) => {
+    try {
+      // TODO: Implement maintenance request creation
+      console.log('Creating maintenance request:', request);
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Refresh data after creation
+      await loadDashboardData();
+    } catch (error) {
+      throw new Error('Failed to create maintenance request');
+    }
   };
 
-  const handleMessages = () => {
+  const handleSendMessage = async (content: string) => {
+    try {
+      // TODO: Implement message sending
+      console.log('Sending message:', content);
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Refresh data after sending
+      await loadDashboardData();
+    } catch (error) {
+      throw new Error('Failed to send message');
+    }
+  };
+
+  const handleMarkMessageAsRead = async (messageId: string) => {
+    try {
+      // TODO: Implement mark as read
+      console.log('Marking message as read:', messageId);
+    } catch (error) {
+      console.error('Failed to mark message as read:', error);
+    }
+  };
+
+  const handleMarkNotificationAsRead = async (notificationId: string) => {
+    try {
+      // TODO: Implement mark notification as read
+      console.log('Marking notification as read:', notificationId);
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
+    }
+  };
+
+  const handleContactLandlord = () => {
+    // TODO: Implement contact landlord functionality
+    Alert.alert('Contact Landlord', 'Contact feature coming soon');
+  };
+
+  const handleViewAllMessages = () => {
     // TODO: Navigate to messages screen
-    Alert.alert('Messages', 'Messaging feature coming soon');
+    Alert.alert('Messages', 'Full messages view coming soon');
   };
 
-  if (!dashboardData?.user) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Loading dashboard...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
+  const handleViewAllNotifications = () => {
+    // TODO: Navigate to notifications screen
+    Alert.alert('Notifications', 'Full notifications view coming soon');
+  };
+
+  const handleViewPaymentHistory = () => {
+    // TODO: Navigate to payment history screen
+    Alert.alert('Payment History', 'Full payment history coming soon');
+  };
+
+  const handleViewAllMaintenanceRequests = () => {
+    // TODO: Navigate to maintenance requests screen
+    Alert.alert('Maintenance', 'Full maintenance requests view coming soon');
+  };
+
+  // Get current payment status
+  const currentPayment = payments?.find(p => p.type === 'rent' && p.status === 'pending');
+  const recentPayments = payments?.filter(p => p.status === 'completed').slice(0, 5) || [];
+
+  // Get data from enhanced dashboard
+  const unreadMessages = enhancedData?.unread_messages || [];
+  const notifications = enhancedData?.notifications || [];
+  const maintenanceRequests = enhancedData?.maintenance_requests || [];
+  const propertyDetails = enhancedData?.property_details;
+  const currentTenancy = enhancedData?.current_tenancy;
+
+  // Calculate counts for quick actions
+  const unreadMessageCount = unreadMessages.length;
+  const pendingMaintenanceCount = maintenanceRequests?.filter(r => r.status === 'submitted' || r.status === 'in_progress').length || 0;
+
+  const userName = dashboardData?.user?.full_name || enhancedData?.user_profile?.full_name || 'Tenant';
+  const landlordName = currentTenancy?.property?.landlord?.profile?.full_name || 'Landlord';
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView
-        style={styles.scrollView}
-        refreshControl={
-          <RefreshControl refreshing={isLoading} onRefresh={onRefresh} />
-        }
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.welcomeText}>Welcome back,</Text>
-          <Text style={styles.nameText}>{dashboardData.user.full_name}</Text>
-        </View>
-
-        {/* Rent Status Card */}
-        <Card style={styles.rentCard}>
-          <View style={styles.rentHeader}>
-            <Text style={styles.cardTitle}>Rent Status</Text>
-            {isRentOverdue && (
-              <View style={styles.overdueTag}>
-                <Text style={styles.overdueText}>OVERDUE</Text>
-              </View>
-            )}
-          </View>
-          
-          <View style={styles.rentAmount}>
-            <Text style={styles.amountLabel}>Current Balance</Text>
-            <Text style={[
-              styles.amountValue,
-              isRentOverdue && styles.overdueAmount
-            ]}>
-              ${currentRent?.amount || 0}
-            </Text>
-          </View>
-
-          {nextPaymentDue && (
-            <Text style={styles.dueDate}>
-              Due: {nextPaymentDue.toLocaleDateString()}
-            </Text>
-          )}
-
-          <Button
-            title="Pay Rent"
-            onPress={handlePayRent}
-            style={styles.payButton}
-            variant={isRentOverdue ? 'primary' : 'secondary'}
+    <DashboardLayout
+      title={`Welcome back, ${userName.split(' ')[0]}`}
+      subtitle="Tenant Dashboard"
+      isLoading={isLoading && !enhancedData}
+      onRefresh={onRefresh}
+      refreshing={refreshing}
+    >
+      {/* Payment Status - High Priority */}
+      <DashboardSection title="Payment Status" spacing="medium">
+        <ErrorBoundary fallbackMessage="Unable to load payment information">
+          <PaymentStatusCard
+            paymentStatus={currentPayment}
+            isLoading={isLoading}
+            onPayRent={handlePayRent}
           />
-        </Card>
+        </ErrorBoundary>
+      </DashboardSection>
 
-        {/* Quick Actions */}
-        <View style={styles.quickActions}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
-          
-          <View style={styles.actionGrid}>
-            <Card style={styles.actionCard} onPress={handleViewDocuments}>
-              <Text style={styles.actionIcon}>📄</Text>
-              <Text style={styles.actionTitle}>Lease Documents</Text>
-              <Text style={styles.actionSubtitle}>View & download</Text>
-            </Card>
+      {/* Quick Actions */}
+      <DashboardSection title="Quick Actions">
+        <QuickActionButtons
+          onPayRent={handlePayRent}
+          onViewDocuments={handleViewDocuments}
+          onContactLandlord={handleContactLandlord}
+          onViewPaymentHistory={handleViewPaymentHistory}
+          onMaintenanceRequest={() => {}} // This will be handled by MaintenanceRequestCard
+          onViewMessages={handleViewAllMessages}
+          unreadMessageCount={unreadMessageCount}
+          pendingMaintenanceCount={pendingMaintenanceCount}
+        />
+      </DashboardSection>
 
-            <Card style={styles.actionCard} onPress={handleMaintenanceRequest}>
-              <Text style={styles.actionIcon}>🔧</Text>
-              <Text style={styles.actionTitle}>Maintenance</Text>
-              <Text style={styles.actionSubtitle}>Report issues</Text>
-            </Card>
+      {/* Property Information */}
+      <DashboardSection title="Property Information" spacing="medium">
+        <ErrorBoundary fallbackMessage="Unable to load property information">
+          <PropertyInfoCard
+            property={propertyDetails}
+            unit={currentTenancy?.unit}
+            tenancy={currentTenancy}
+            isLoading={isLoading}
+            onViewDetails={() => Alert.alert('Property Details', 'Property details view coming soon')}
+          />
+        </ErrorBoundary>
+      </DashboardSection>
 
-            <Card style={styles.actionCard} onPress={handleMessages}>
-              <Text style={styles.actionIcon}>💬</Text>
-              <Text style={styles.actionTitle}>Messages</Text>
-              <Text style={styles.actionSubtitle}>Chat with landlord</Text>
-            </Card>
+      {/* Messages and Notifications Grid */}
+      <DashboardSection title="Communications" spacing="medium">
+        <DashboardGrid columns={getResponsiveColumns(1)} spacing={16}>
+          <ErrorBoundary fallbackMessage="Unable to load messages">
+            <MessagesCard
+              unreadMessages={unreadMessages}
+              isLoading={isLoading}
+              onSendMessage={handleSendMessage}
+              onViewAllMessages={handleViewAllMessages}
+              onMarkAsRead={handleMarkMessageAsRead}
+              landlordName={landlordName}
+            />
+          </ErrorBoundary>
+          <ErrorBoundary fallbackMessage="Unable to load notifications">
+            <NotificationsCard
+              notifications={notifications}
+              isLoading={isLoading}
+              onMarkAsRead={handleMarkNotificationAsRead}
+              onViewAllNotifications={handleViewAllNotifications}
+            />
+          </ErrorBoundary>
+        </DashboardGrid>
+      </DashboardSection>
 
-            <Card style={styles.actionCard}>
-              <Text style={styles.actionIcon}>📊</Text>
-              <Text style={styles.actionTitle}>Payment History</Text>
-              <Text style={styles.actionSubtitle}>View past payments</Text>
-            </Card>
-          </View>
-        </View>
+      {/* Maintenance Requests */}
+      <DashboardSection title="Maintenance" spacing="medium">
+        <ErrorBoundary fallbackMessage="Unable to load maintenance requests">
+          <MaintenanceRequestCard
+            recentRequests={maintenanceRequests}
+            isLoading={isLoading}
+            onCreateRequest={handleMaintenanceRequest}
+            onViewAllRequests={handleViewAllMaintenanceRequests}
+          />
+        </ErrorBoundary>
+      </DashboardSection>
 
-        {/* Recent Activity */}
-        <View style={styles.recentActivity}>
-          <Text style={styles.sectionTitle}>Recent Activity</Text>
-          
-          <Card style={styles.activityCard}>
-            <View style={styles.activityItem}>
-              <View style={styles.activityIcon}>
-                <Text>💳</Text>
-              </View>
-              <View style={styles.activityContent}>
-                <Text style={styles.activityTitle}>Rent payment processed</Text>
-                <Text style={styles.activityDate}>2 days ago</Text>
-              </View>
-            </View>
-          </Card>
-
-          <Card style={styles.activityCard}>
-            <View style={styles.activityItem}>
-              <View style={styles.activityIcon}>
-                <Text>📄</Text>
-              </View>
-              <View style={styles.activityContent}>
-                <Text style={styles.activityTitle}>Lease agreement updated</Text>
-                <Text style={styles.activityDate}>1 week ago</Text>
-              </View>
-            </View>
-          </Card>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+      {/* Payment History */}
+      <DashboardSection title="Payment History" spacing="large">
+        <ErrorBoundary fallbackMessage="Unable to load payment history">
+          <PaymentHistoryCard
+            recentPayments={recentPayments}
+            isLoading={isLoading}
+            onViewFullHistory={handleViewPaymentHistory}
+            onPaymentPress={(payment) => Alert.alert('Payment Details', `Payment ID: ${payment.id}`)}
+          />
+        </ErrorBoundary>
+      </DashboardSection>
+    </DashboardLayout>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.surface,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 16,
-    color: Colors.textSecondary,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  header: {
-    padding: 24,
-    paddingBottom: 16,
-  },
-  welcomeText: {
-    fontSize: 16,
-    color: Colors.textSecondary,
-  },
-  nameText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: Colors.text,
-    marginTop: 4,
-  },
-  rentCard: {
-    margin: 16,
-    marginTop: 0,
-  },
-  rentHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: Colors.text,
-  },
-  overdueTag: {
-    backgroundColor: Colors.error,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  overdueText: {
-    color: Colors.textOnPrimary,
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  rentAmount: {
-    marginBottom: 8,
-  },
-  amountLabel: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-    marginBottom: 4,
-  },
-  amountValue: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: Colors.primary,
-  },
-  overdueAmount: {
-    color: Colors.error,
-  },
-  dueDate: {
-    fontSize: 14,
-    color: Colors.textSecondary,
-    marginBottom: 16,
-  },
-  payButton: {
-    marginTop: 8,
-  },
-  quickActions: {
-    padding: 16,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: Colors.text,
-    marginBottom: 16,
-  },
-  actionGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  actionCard: {
-    width: '47%',
-    alignItems: 'center',
-    padding: 20,
-  },
-  actionIcon: {
-    fontSize: 24,
-    marginBottom: 8,
-  },
-  actionTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.text,
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  actionSubtitle: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-  },
-  recentActivity: {
-    padding: 16,
-  },
-  activityCard: {
-    marginBottom: 12,
-  },
-  activityItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  activityIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Colors.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  activityContent: {
-    flex: 1,
-  },
-  activityTitle: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: Colors.text,
-    marginBottom: 2,
-  },
-  activityDate: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-  },
-});
 
 export default TenantDashboard;
