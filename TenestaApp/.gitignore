@@ -1,0 +1,74 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment Variables - CRITICAL SECURITY
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+
+# React Native / Expo
+.expo/
+dist/
+web-build/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+logs
+*.log
+
+# Runtime data
+pids
+*.pid
+*.seed
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Build outputs
+build/
+dist/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Secrets and keys - NEVER COMMIT
+*.key
+*.pem
+*.p12
+secrets.json
+config/secrets.js
+config/production.js
+
+# Database
+*.db
+*.sqlite
+
+# Testing
+coverage/
+
+# Deployment
+.deploy/
+
+# Local configuration
+config/local.json

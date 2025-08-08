@@ -3,13 +3,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
-// Define CORS headers inline
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
-}
+import { headers } from '../_shared/cors.ts'
 
 interface DocumentUploadRequest {
   action: 'upload' | 'download' | 'list' | 'delete' | 'update_metadata'
@@ -24,9 +18,12 @@ interface DocumentUploadRequest {
 }
 
 serve(async (req) => {
+  const origin = req.headers.get('origin');
+  const headers = headers(origin);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response('ok', { headers })
   }
 
   try {
@@ -51,7 +48,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...headers, 'Content-Type': 'application/json' },
           status: 401,
         }
       )
@@ -68,7 +65,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: 'User profile not found' }),
         {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...headers, 'Content-Type': 'application/json' },
           status: 404,
         }
       )
@@ -97,7 +94,7 @@ serve(async (req) => {
         return new Response(
           JSON.stringify({ error: 'Invalid action' }),
           {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            headers: { ...headers, 'Content-Type': 'application/json' },
             status: 400,
           }
         )
@@ -108,7 +105,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 500,
       }
     )
@@ -122,7 +119,7 @@ async function handleUpload(supabaseClient: any, userProfile: any, requestData: 
     return new Response(
       JSON.stringify({ error: 'Missing required fields: tenancy_id, document_type, file_name, file_data, mime_type' }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 400,
       }
     )
@@ -134,7 +131,7 @@ async function handleUpload(supabaseClient: any, userProfile: any, requestData: 
     return new Response(
       JSON.stringify({ error: 'Access denied to this tenancy' }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 403,
       }
     )
@@ -162,7 +159,7 @@ async function handleUpload(supabaseClient: any, userProfile: any, requestData: 
       return new Response(
         JSON.stringify({ error: 'Failed to upload file' }),
         {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...headers, 'Content-Type': 'application/json' },
           status: 500,
         }
       )
@@ -192,7 +189,7 @@ async function handleUpload(supabaseClient: any, userProfile: any, requestData: 
       return new Response(
         JSON.stringify({ error: 'Failed to save document metadata' }),
         {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...headers, 'Content-Type': 'application/json' },
           status: 500,
         }
       )
@@ -205,7 +202,7 @@ async function handleUpload(supabaseClient: any, userProfile: any, requestData: 
         message: 'Document uploaded successfully'
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 201,
       }
     )
@@ -215,7 +212,7 @@ async function handleUpload(supabaseClient: any, userProfile: any, requestData: 
     return new Response(
       JSON.stringify({ error: 'Failed to process file upload' }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 500,
       }
     )
@@ -229,7 +226,7 @@ async function handleDownload(supabaseClient: any, userProfile: any, requestData
     return new Response(
       JSON.stringify({ error: 'Missing document_id' }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 400,
       }
     )
@@ -246,7 +243,7 @@ async function handleDownload(supabaseClient: any, userProfile: any, requestData
     return new Response(
       JSON.stringify({ error: 'Document not found' }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 404,
       }
     )
@@ -258,7 +255,7 @@ async function handleDownload(supabaseClient: any, userProfile: any, requestData
     return new Response(
       JSON.stringify({ error: 'Access denied to this document' }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 403,
       }
     )
@@ -273,7 +270,7 @@ async function handleDownload(supabaseClient: any, userProfile: any, requestData
     return new Response(
       JSON.stringify({ error: 'Failed to generate download URL' }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 500,
       }
     )
@@ -287,7 +284,7 @@ async function handleDownload(supabaseClient: any, userProfile: any, requestData
       expires_at: new Date(Date.now() + 3600000).toISOString()
     }),
     {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...headers, 'Content-Type': 'application/json' },
       status: 200,
     }
   )
@@ -300,7 +297,7 @@ async function handleList(supabaseClient: any, userProfile: any, requestData: Do
     return new Response(
       JSON.stringify({ error: 'Missing tenancy_id' }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 400,
       }
     )
@@ -312,7 +309,7 @@ async function handleList(supabaseClient: any, userProfile: any, requestData: Do
     return new Response(
       JSON.stringify({ error: 'Access denied to this tenancy' }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 403,
       }
     )
@@ -342,7 +339,7 @@ async function handleList(supabaseClient: any, userProfile: any, requestData: Do
     return new Response(
       JSON.stringify({ error: 'Failed to fetch documents' }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 500,
       }
     )
@@ -355,7 +352,7 @@ async function handleList(supabaseClient: any, userProfile: any, requestData: Do
       count: documents?.length || 0
     }),
     {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...headers, 'Content-Type': 'application/json' },
       status: 200,
     }
   )
@@ -368,7 +365,7 @@ async function handleDelete(supabaseClient: any, userProfile: any, requestData: 
     return new Response(
       JSON.stringify({ error: 'Missing document_id' }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 400,
       }
     )
@@ -385,7 +382,7 @@ async function handleDelete(supabaseClient: any, userProfile: any, requestData: 
     return new Response(
       JSON.stringify({ error: 'Document not found' }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 404,
       }
     )
@@ -403,7 +400,7 @@ async function handleDelete(supabaseClient: any, userProfile: any, requestData: 
     return new Response(
       JSON.stringify({ error: 'Access denied. Cannot delete this document.' }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 403,
       }
     )
@@ -428,7 +425,7 @@ async function handleDelete(supabaseClient: any, userProfile: any, requestData: 
     return new Response(
       JSON.stringify({ error: 'Failed to delete document record' }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 500,
       }
     )
@@ -440,7 +437,7 @@ async function handleDelete(supabaseClient: any, userProfile: any, requestData: 
       message: 'Document deleted successfully'
     }),
     {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...headers, 'Content-Type': 'application/json' },
       status: 200,
     }
   )
@@ -453,7 +450,7 @@ async function handleUpdateMetadata(supabaseClient: any, userProfile: any, reque
     return new Response(
       JSON.stringify({ error: 'Missing document_id or metadata' }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 400,
       }
     )
@@ -470,7 +467,7 @@ async function handleUpdateMetadata(supabaseClient: any, userProfile: any, reque
     return new Response(
       JSON.stringify({ error: 'Document not found' }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 404,
       }
     )
@@ -482,7 +479,7 @@ async function handleUpdateMetadata(supabaseClient: any, userProfile: any, reque
     return new Response(
       JSON.stringify({ error: 'Access denied to this document' }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 403,
       }
     )
@@ -503,7 +500,7 @@ async function handleUpdateMetadata(supabaseClient: any, userProfile: any, reque
     return new Response(
       JSON.stringify({ error: 'Failed to update document metadata' }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 500,
       }
     )
@@ -516,7 +513,7 @@ async function handleUpdateMetadata(supabaseClient: any, userProfile: any, reque
       message: 'Document metadata updated successfully'
     }),
     {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...headers, 'Content-Type': 'application/json' },
       status: 200,
     }
   )

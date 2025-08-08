@@ -3,7 +3,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { corsHeaders } from '../_shared/cors.ts'
+import { headers } from '../_shared/cors.ts'
 
 interface DisputeRequest {
   action: 'create' | 'update' | 'resolve' | 'get' | 'list';
@@ -26,9 +26,12 @@ interface DisputeResponse {
 }
 
 serve(async (req) => {
+  const origin = req.headers.get('origin');
+  const headers = headers(origin);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response('ok', { headers })
   }
 
   try {
@@ -53,7 +56,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...headers, 'Content-Type': 'application/json' },
           status: 401,
         }
       )
@@ -70,7 +73,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: 'User profile not found' }),
         {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...headers, 'Content-Type': 'application/json' },
           status: 404,
         }
       )
@@ -83,7 +86,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: 'Action is required' }),
         {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...headers, 'Content-Type': 'application/json' },
           status: 400,
         }
       )
@@ -116,7 +119,7 @@ serve(async (req) => {
         return new Response(
           JSON.stringify({ error: 'Invalid action' }),
           {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            headers: { ...headers, 'Content-Type': 'application/json' },
             status: 400,
           }
         )
@@ -125,7 +128,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify(response),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: response.success ? 200 : 400,
       }
     )
@@ -135,7 +138,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 500,
       }
     )

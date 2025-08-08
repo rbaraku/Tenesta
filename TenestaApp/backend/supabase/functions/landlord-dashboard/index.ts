@@ -29,9 +29,12 @@ interface LandlordDashboardResponse {
 }
 
 serve(async (req) => {
+  const origin = req.headers.get('origin');
+  const headers = corsHeaders(origin);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response('ok', { headers })
   }
 
   try {
@@ -56,7 +59,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...headers, 'Content-Type': 'application/json' },
           status: 401,
         }
       )
@@ -258,7 +261,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify(dashboardData),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 200,
       }
     )
@@ -268,7 +271,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 500,
       }
     )

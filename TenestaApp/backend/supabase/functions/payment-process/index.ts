@@ -22,9 +22,12 @@ interface PaymentResponse {
 }
 
 serve(async (req) => {
+  const origin = req.headers.get('origin');
+  const headers = corsHeaders(origin);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response('ok', { headers })
   }
 
   try {
@@ -49,7 +52,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...headers, 'Content-Type': 'application/json' },
           status: 401,
         }
       )
@@ -62,7 +65,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: 'Missing required fields: payment_id and action' }),
         {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...headers, 'Content-Type': 'application/json' },
           status: 400,
         }
       )
@@ -93,7 +96,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: 'Payment not found' }),
         {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...headers, 'Content-Type': 'application/json' },
           status: 404,
         }
       )
@@ -107,7 +110,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: 'Access denied' }),
         {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...headers, 'Content-Type': 'application/json' },
           status: 403,
         }
       )
@@ -125,7 +128,7 @@ serve(async (req) => {
           return new Response(
             JSON.stringify({ error: 'payment_method_id required for confirm_payment' }),
             {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              headers: { ...headers, 'Content-Type': 'application/json' },
               status: 400,
             }
           )
@@ -143,7 +146,7 @@ serve(async (req) => {
           return new Response(
             JSON.stringify({ error: 'Only landlords can manually mark payments as paid' }),
             {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              headers: { ...headers, 'Content-Type': 'application/json' },
               status: 403,
             }
           )
@@ -157,7 +160,7 @@ serve(async (req) => {
           return new Response(
             JSON.stringify({ error: 'Only tenants can schedule payments' }),
             {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              headers: { ...headers, 'Content-Type': 'application/json' },
               status: 403,
             }
           )
@@ -169,7 +172,7 @@ serve(async (req) => {
         return new Response(
           JSON.stringify({ error: 'Invalid action' }),
           {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            headers: { ...headers, 'Content-Type': 'application/json' },
             status: 400,
           }
         )
@@ -178,7 +181,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify(response),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: response.success ? 200 : 400,
       }
     )
@@ -188,7 +191,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 500,
       }
     )

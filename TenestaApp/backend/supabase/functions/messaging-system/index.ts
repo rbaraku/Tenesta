@@ -3,13 +3,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
-// Define CORS headers inline
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
-}
+import { corsHeaders } from '../_shared/cors.ts'
 
 interface MessagingRequest {
   action: 'send_message' | 'get_messages' | 'mark_read' | 'create_notification' | 'get_notifications' | 'mark_notification_read' | 'get_conversation'
@@ -35,9 +29,12 @@ interface MessagingRequest {
 }
 
 serve(async (req) => {
+  const origin = req.headers.get('origin');
+  const headers = corsHeaders(origin);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response('ok', { headers })
   }
 
   try {
@@ -62,7 +59,7 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...headers, 'Content-Type': 'application/json' },
           status: 401,
         }
       )
@@ -85,7 +82,7 @@ serve(async (req) => {
           auth_user_id: user.id
         }),
         {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...headers, 'Content-Type': 'application/json' },
           status: 404,
         }
       )
@@ -120,7 +117,7 @@ serve(async (req) => {
         return new Response(
           JSON.stringify({ error: 'Invalid action' }),
           {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            headers: { ...headers, 'Content-Type': 'application/json' },
             status: 400,
           }
         )
@@ -131,7 +128,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 500,
       }
     )
@@ -145,7 +142,7 @@ async function handleSendMessage(supabaseClient: any, userProfile: any, requestD
     return new Response(
       JSON.stringify({ error: 'Missing required fields: recipient_id, content' }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 400,
       }
     )
@@ -158,7 +155,7 @@ async function handleSendMessage(supabaseClient: any, userProfile: any, requestD
       return new Response(
         JSON.stringify({ error: 'Access denied to this tenancy' }),
         {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...headers, 'Content-Type': 'application/json' },
           status: 403,
         }
       )
@@ -171,7 +168,7 @@ async function handleSendMessage(supabaseClient: any, userProfile: any, requestD
     return new Response(
       JSON.stringify({ error: 'Cannot send message to this recipient' }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 403,
       }
     )
@@ -207,7 +204,7 @@ async function handleSendMessage(supabaseClient: any, userProfile: any, requestD
       return new Response(
         JSON.stringify({ error: 'Failed to send message' }),
         {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...headers, 'Content-Type': 'application/json' },
           status: 500,
         }
       )
@@ -249,7 +246,7 @@ async function handleSendMessage(supabaseClient: any, userProfile: any, requestD
         notification_sent: true
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 201,
       }
     )
@@ -259,7 +256,7 @@ async function handleSendMessage(supabaseClient: any, userProfile: any, requestD
     return new Response(
       JSON.stringify({ error: 'Failed to send message' }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 500,
       }
     )
@@ -302,7 +299,7 @@ async function handleGetMessages(supabaseClient: any, userProfile: any, requestD
       return new Response(
         JSON.stringify({ error: 'Failed to fetch messages' }),
         {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...headers, 'Content-Type': 'application/json' },
           status: 500,
         }
       )
@@ -315,7 +312,7 @@ async function handleGetMessages(supabaseClient: any, userProfile: any, requestD
         count: messages?.length || 0
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 200,
       }
     )
@@ -325,7 +322,7 @@ async function handleGetMessages(supabaseClient: any, userProfile: any, requestD
     return new Response(
       JSON.stringify({ error: 'Failed to fetch messages' }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 500,
       }
     )
@@ -339,7 +336,7 @@ async function handleGetConversation(supabaseClient: any, userProfile: any, requ
     return new Response(
       JSON.stringify({ error: 'Missing recipient_id' }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 400,
       }
     )
@@ -374,7 +371,7 @@ async function handleGetConversation(supabaseClient: any, userProfile: any, requ
       return new Response(
         JSON.stringify({ error: 'Failed to fetch conversation' }),
         {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...headers, 'Content-Type': 'application/json' },
           status: 500,
         }
       )
@@ -387,7 +384,7 @@ async function handleGetConversation(supabaseClient: any, userProfile: any, requ
         count: messages?.length || 0
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 200,
       }
     )
@@ -397,7 +394,7 @@ async function handleGetConversation(supabaseClient: any, userProfile: any, requ
     return new Response(
       JSON.stringify({ error: 'Failed to fetch conversation' }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 500,
       }
     )
@@ -411,7 +408,7 @@ async function handleMarkMessageRead(supabaseClient: any, userProfile: any, requ
     return new Response(
       JSON.stringify({ error: 'Missing message_id' }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 400,
       }
     )
@@ -428,7 +425,7 @@ async function handleMarkMessageRead(supabaseClient: any, userProfile: any, requ
       return new Response(
         JSON.stringify({ error: 'Failed to mark message as read' }),
         {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...headers, 'Content-Type': 'application/json' },
           status: 500,
         }
       )
@@ -440,7 +437,7 @@ async function handleMarkMessageRead(supabaseClient: any, userProfile: any, requ
         message: 'Message marked as read'
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 200,
       }
     )
@@ -450,7 +447,7 @@ async function handleMarkMessageRead(supabaseClient: any, userProfile: any, requ
     return new Response(
       JSON.stringify({ error: 'Failed to mark message as read' }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 500,
       }
     )
@@ -464,7 +461,7 @@ async function handleCreateNotification(supabaseClient: any, userProfile: any, r
     return new Response(
       JSON.stringify({ error: 'Missing required fields: recipient_id, title, content' }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 400,
       }
     )
@@ -475,7 +472,7 @@ async function handleCreateNotification(supabaseClient: any, userProfile: any, r
     return new Response(
       JSON.stringify({ error: 'Access denied. Only admins can create notifications.' }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 403,
       }
     )
@@ -500,7 +497,7 @@ async function handleCreateNotification(supabaseClient: any, userProfile: any, r
       return new Response(
         JSON.stringify({ error: 'Failed to create notification' }),
         {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...headers, 'Content-Type': 'application/json' },
           status: 500,
         }
       )
@@ -525,7 +522,7 @@ async function handleCreateNotification(supabaseClient: any, userProfile: any, r
         notification
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 201,
       }
     )
@@ -535,7 +532,7 @@ async function handleCreateNotification(supabaseClient: any, userProfile: any, r
     return new Response(
       JSON.stringify({ error: 'Failed to create notification' }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 500,
       }
     )
@@ -563,7 +560,7 @@ async function handleGetNotifications(supabaseClient: any, userProfile: any, req
       return new Response(
         JSON.stringify({ error: 'Failed to fetch notifications' }),
         {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...headers, 'Content-Type': 'application/json' },
           status: 500,
         }
       )
@@ -576,7 +573,7 @@ async function handleGetNotifications(supabaseClient: any, userProfile: any, req
         count: notifications?.length || 0
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 200,
       }
     )
@@ -586,7 +583,7 @@ async function handleGetNotifications(supabaseClient: any, userProfile: any, req
     return new Response(
       JSON.stringify({ error: 'Failed to fetch notifications' }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 500,
       }
     )
@@ -600,7 +597,7 @@ async function handleMarkNotificationRead(supabaseClient: any, userProfile: any,
     return new Response(
       JSON.stringify({ error: 'Missing notification_id' }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 400,
       }
     )
@@ -617,7 +614,7 @@ async function handleMarkNotificationRead(supabaseClient: any, userProfile: any,
       return new Response(
         JSON.stringify({ error: 'Failed to mark notification as read' }),
         {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...headers, 'Content-Type': 'application/json' },
           status: 500,
         }
       )
@@ -629,7 +626,7 @@ async function handleMarkNotificationRead(supabaseClient: any, userProfile: any,
         message: 'Notification marked as read'
       }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 200,
       }
     )
@@ -639,7 +636,7 @@ async function handleMarkNotificationRead(supabaseClient: any, userProfile: any,
     return new Response(
       JSON.stringify({ error: 'Failed to mark notification as read' }),
       {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...headers, 'Content-Type': 'application/json' },
         status: 500,
       }
     )
